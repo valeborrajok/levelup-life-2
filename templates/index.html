@@ -1,0 +1,266 @@
+<!doctype html>
+<html lang="es">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover" />
+  <title>LevelUp Life</title>
+  <meta name="description" content="Convertí tus tareas diarias en misiones: ganá XP, subí de nivel y desbloqueá recompensas." />
+
+  <!-- PWA / "Agregar a inicio" -->
+  <meta name="theme-color" content="#0d0f1a" />
+  <meta name="mobile-web-app-capable" content="yes" />
+  <meta name="apple-mobile-web-app-capable" content="yes" />
+  <meta name="apple-mobile-web-app-status-bar-style" content="black-translucent" />
+  <meta name="apple-mobile-web-app-title" content="LevelUp Life" />
+  <link rel="manifest" href="{{ url_for('static', filename='manifest.json') }}" />
+  <link rel="icon" type="image/png" href="{{ url_for('static', filename='icons/favicon.png') }}" />
+  <link rel="apple-touch-icon" href="{{ url_for('static', filename='icons/apple-touch-icon.png') }}" />
+
+  <link rel="stylesheet" href="{{ url_for('static', filename='css/style.css') }}" />
+</head>
+<body>
+
+  <!-- Sprite de íconos (oculto). Todo el árbol de símbolos que usan tanto
+       este HTML como app.js al armar tarjetas/nodos dinámicamente. -->
+  <svg class="sr-only" aria-hidden="true">
+    <symbol id="icon-brand" viewBox="0 0 24 24">
+      <path d="M4 14l8-7 8 7" fill="none" stroke="#e8b34d" stroke-width="2.4" stroke-linecap="round" stroke-linejoin="round"/>
+      <path d="M4 19l8-7 8 7" fill="none" stroke="#9b8cff" stroke-width="2.4" stroke-linecap="round" stroke-linejoin="round"/>
+    </symbol>
+    <symbol id="icon-coin" viewBox="0 0 24 24">
+      <circle cx="12" cy="12" r="8.5" fill="none" stroke="currentColor" stroke-width="1.8"/>
+      <path d="M9.3 9.8c.3-1 1.3-1.6 2.7-1.6 1.6 0 2.7.7 2.7 1.7s-1.1 1.4-2.7 1.4-2.7.5-2.7 1.6 1.1 1.8 2.7 1.8c1.4 0 2.4-.5 2.7-1.5M12 7.3v9.4" fill="none" stroke="currentColor" stroke-width="1.3" stroke-linecap="round"/>
+    </symbol>
+    <symbol id="icon-cash" viewBox="0 0 24 24">
+      <rect x="2.5" y="6.5" width="19" height="11" rx="2" fill="none" stroke="currentColor" stroke-width="1.6"/>
+      <circle cx="12" cy="12" r="2.4" fill="none" stroke="currentColor" stroke-width="1.6"/>
+    </symbol>
+    <symbol id="icon-lock" viewBox="0 0 24 24">
+      <rect x="5" y="11" width="14" height="9" rx="2" fill="none" stroke="currentColor" stroke-width="1.8"/>
+      <path d="M8 11V8a4 4 0 0 1 8 0v3" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round"/>
+    </symbol>
+    <symbol id="icon-check" viewBox="0 0 24 24">
+      <path d="M5 12.5l4.5 4.5L19 7" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round"/>
+    </symbol>
+    <symbol id="icon-star" viewBox="0 0 24 24">
+      <path d="M12 3.5l2.4 5.1 5.6.6-4.2 3.8 1.2 5.5L12 15.8 6.9 18.5l1.2-5.5-4.1-3.8 5.6-.6z" fill="currentColor"/>
+    </symbol>
+    <symbol id="icon-retry" viewBox="0 0 24 24">
+      <path d="M4 12a8 8 0 1 1 2.5 5.8" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round"/>
+      <path d="M4 17v-5h5" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"/>
+    </symbol>
+    <symbol id="icon-plus" viewBox="0 0 24 24">
+      <path d="M12 5v14M5 12h14" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round"/>
+    </symbol>
+    <symbol id="icon-trash" viewBox="0 0 24 24">
+      <path d="M4 7h16M9 7V5a1 1 0 0 1 1-1h4a1 1 0 0 1 1 1v2m-8 0 1 13a1 1 0 0 0 1 1h6a1 1 0 0 0 1-1l1-13" fill="none" stroke="currentColor" stroke-width="1.7" stroke-linecap="round" stroke-linejoin="round"/>
+    </symbol>
+    <symbol id="icon-pencil" viewBox="0 0 24 24">
+      <path d="M4 20l.9-3.9L15.6 5.4a1.5 1.5 0 0 1 2.1 0l1 1a1.5 1.5 0 0 1 0 2.1L8 19.1 4 20z" fill="none" stroke="currentColor" stroke-width="1.6" stroke-linejoin="round"/>
+    </symbol>
+    <symbol id="icon-close" viewBox="0 0 24 24">
+      <path d="M6 6l12 12M18 6L6 18" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round"/>
+    </symbol>
+    <symbol id="icon-chevron" viewBox="0 0 24 24">
+      <path d="M9 5l7 7-7 7" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"/>
+    </symbol>
+    <symbol id="icon-warning" viewBox="0 0 24 24">
+      <path d="M12 4 21 19H3L12 4z" fill="none" stroke="currentColor" stroke-width="1.6" stroke-linejoin="round"/>
+      <path d="M12 10v4.5M12 17h.01" stroke="currentColor" stroke-width="1.8" stroke-linecap="round"/>
+    </symbol>
+    <symbol id="icon-nav-quest" viewBox="0 0 24 24">
+      <path d="M9 6h11M9 12h11M9 18h11" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round"/>
+      <path d="M4 6.3l.9.9L6.6 5.4M4 12.3l.9.9 1.7-1.8M4 18.3l.9.9 1.7-1.8" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"/>
+    </symbol>
+    <symbol id="icon-nav-tree" viewBox="0 0 24 24">
+      <circle cx="12" cy="4.5" r="2" fill="none" stroke="currentColor" stroke-width="1.6"/>
+      <circle cx="6" cy="14" r="2" fill="none" stroke="currentColor" stroke-width="1.6"/>
+      <circle cx="18" cy="14" r="2" fill="none" stroke="currentColor" stroke-width="1.6"/>
+      <circle cx="12" cy="20.5" r="2" fill="none" stroke="currentColor" stroke-width="1.6"/>
+      <path d="M12 6.5v3M12 9.5 6 12M12 9.5l6 2.5M6 16l4.5 3M18 16l-4.5 3" fill="none" stroke="currentColor" stroke-width="1.4"/>
+    </symbol>
+    <symbol id="icon-nav-shop" viewBox="0 0 24 24">
+      <path d="M6 8h12l-1 12H7L6 8z" fill="none" stroke="currentColor" stroke-width="1.7" stroke-linejoin="round"/>
+      <path d="M9 8V6a3 3 0 0 1 6 0v2" fill="none" stroke="currentColor" stroke-width="1.7"/>
+    </symbol>
+    <symbol id="icon-trophy" viewBox="0 0 24 24">
+      <path d="M7 4h10v4a5 5 0 0 1-10 0V4z" fill="none" stroke="currentColor" stroke-width="1.6" stroke-linejoin="round"/>
+      <path d="M7 5H4v2a3 3 0 0 0 3 3M17 5h3v2a3 3 0 0 1-3 3" fill="none" stroke="currentColor" stroke-width="1.6" stroke-linecap="round"/>
+      <path d="M12 13v3M10 19.5h4M10.5 16h3a1 1 0 0 1 1 1v1a1 1 0 0 1-1 1h-3a1 1 0 0 1-1-1v-1a1 1 0 0 1 1-1z" fill="none" stroke="currentColor" stroke-width="1.6" stroke-linejoin="round"/>
+    </symbol>
+  </svg>
+
+  <div class="app-shell">
+    <header class="topbar">
+      <div class="topbar__row">
+        <div class="brand">
+          <svg class="brand__mark" aria-hidden="true"><use href="#icon-brand"></use></svg>
+          <span class="brand__name">LevelUp Life</span>
+        </div>
+        <button class="profile-chip" id="btn-edit-profile" type="button" aria-label="Editar perfil">
+          <span class="profile-chip__avatar" id="profile-avatar">🙂</span>
+          <span class="profile-chip__name" id="profile-name">Sin nombre</span>
+        </button>
+      </div>
+
+      <div class="level-progress">
+        <div class="level-badge" id="level-badge" aria-label="Nivel 1">
+          <span id="level-number" class="num">1</span>
+          <small>Nv.</small>
+        </div>
+        <div class="xp-bar">
+          <p class="xp-bar__title" id="xp-bar-title"></p>
+          <div class="xp-bar__labels">
+            <span id="xp-current-label" class="num">0 XP</span>
+            <span id="xp-next-label" class="num">100 XP</span>
+          </div>
+          <div class="xp-bar__track">
+            <div class="xp-bar__fill" id="xp-bar-fill" style="width: 0%"></div>
+          </div>
+        </div>
+      </div>
+
+      <div class="currency-row">
+        <span class="currency-pill currency-pill--gold">
+          <svg aria-hidden="true"><use href="#icon-coin"></use></svg>
+          <span id="gold-amount" class="num">0</span>
+        </span>
+        <span class="currency-pill currency-pill--cash">
+          <svg aria-hidden="true"><use href="#icon-cash"></use></svg>
+          <span id="cash-amount" class="num">$0</span>
+        </span>
+      </div>
+    </header>
+
+    <main>
+      <!-- ============================= MISIONES ============================= -->
+      <section class="view is-active" id="view-quests" aria-labelledby="quests-heading">
+        <div class="section-header">
+          <div class="section-header__text">
+            <h2 id="quests-heading">Misiones</h2>
+            <p>Completá tareas para ganar XP y Gold Coins.</p>
+          </div>
+          <button class="fab-add" id="btn-new-quest" aria-label="Nueva misión">
+            <svg aria-hidden="true"><use href="#icon-plus"></use></svg>
+          </button>
+        </div>
+
+        <div class="filter-chips" id="quest-filters" role="tablist" aria-label="Filtrar por categoría">
+          <button class="filter-chip is-active" data-category="" role="tab" aria-selected="true">Todas</button>
+          <button class="filter-chip" data-category="diaria" role="tab" aria-selected="false">Diarias</button>
+          <button class="filter-chip" data-category="semanal" role="tab" aria-selected="false">Semanales</button>
+          <button class="filter-chip" data-category="campana" role="tab" aria-selected="false">Campaña</button>
+          <button class="filter-chip" data-category="meta" role="tab" aria-selected="false">Metas</button>
+          <button class="filter-chip" data-category="evento" role="tab" aria-selected="false">Eventos</button>
+        </div>
+
+        <div id="quest-list" class="card-list">
+          <div class="loading-spinner" role="status" aria-label="Cargando misiones"></div>
+        </div>
+      </section>
+
+      <!-- ======================= ÁRBOL DE HABILIDADES ======================= -->
+      <section class="view" id="view-tree" aria-labelledby="tree-heading">
+        <div class="section-header">
+          <div class="section-header__text">
+            <h2 id="tree-heading">Árbol de habilidades</h2>
+            <p>Avanzá rama por rama hasta completarlas.</p>
+          </div>
+          <button class="fab-add" id="btn-new-tree" aria-label="Nuevo árbol">
+            <svg aria-hidden="true"><use href="#icon-plus"></use></svg>
+          </button>
+        </div>
+
+        <div class="tree-select-row">
+          <select id="tree-select" class="tree-select" aria-label="Elegir árbol de habilidades"></select>
+          <button class="icon-btn" id="btn-edit-tree" type="button" aria-label="Editar árbol">
+            <svg aria-hidden="true"><use href="#icon-pencil"></use></svg>
+          </button>
+        </div>
+
+        <div class="section-header">
+          <div class="section-header__text"><p>Ramas</p></div>
+          <button class="btn btn--ghost btn--small" id="btn-new-branch" type="button">
+            <svg aria-hidden="true"><use href="#icon-plus"></use></svg>
+            Rama
+          </button>
+        </div>
+
+        <div id="branch-list">
+          <div class="loading-spinner" role="status" aria-label="Cargando árbol"></div>
+        </div>
+      </section>
+
+      <!-- =============================== TIENDA ============================== -->
+      <section class="view" id="view-shop" aria-labelledby="shop-heading">
+        <div class="section-header">
+          <div class="section-header__text">
+            <h2 id="shop-heading">Tienda</h2>
+            <p>Canjeá Gold Coins y saldo real por recompensas.</p>
+          </div>
+          <button class="fab-add" id="btn-new-item" aria-label="Nuevo ítem">
+            <svg aria-hidden="true"><use href="#icon-plus"></use></svg>
+          </button>
+        </div>
+
+        <div id="shop-list" class="shop-grid">
+          <div class="loading-spinner" role="status" aria-label="Cargando tienda"></div>
+        </div>
+
+        <div class="purchase-log">
+          <button class="purchase-log__toggle" id="purchase-log-toggle" type="button" aria-expanded="false" aria-controls="purchase-log-list">
+            <svg aria-hidden="true"><use href="#icon-chevron"></use></svg>
+            Historial de compras
+          </button>
+          <div id="purchase-log-list" class="purchase-log__list"></div>
+        </div>
+      </section>
+
+      <!-- =============================== LOGROS =============================== -->
+      <section class="view" id="view-achievements" aria-labelledby="achievements-heading">
+        <div class="section-header">
+          <div class="section-header__text">
+            <h2 id="achievements-heading">Logros</h2>
+            <p>Tu vitrina de trofeos — vos decidís cuándo se desbloquean.</p>
+          </div>
+          <button class="fab-add" id="btn-new-achievement" aria-label="Nuevo logro">
+            <svg aria-hidden="true"><use href="#icon-plus"></use></svg>
+          </button>
+        </div>
+
+        <div id="achievement-list" class="achievement-grid">
+          <div class="loading-spinner" role="status" aria-label="Cargando logros"></div>
+        </div>
+      </section>
+    </main>
+
+    <nav class="nav-tabs" aria-label="Navegación principal">
+      <button class="nav-tabs__item is-active" data-view="quests" type="button">
+        <svg aria-hidden="true"><use href="#icon-nav-quest"></use></svg>
+        Misiones
+      </button>
+      <button class="nav-tabs__item" data-view="tree" type="button">
+        <svg aria-hidden="true"><use href="#icon-nav-tree"></use></svg>
+        Árbol
+      </button>
+      <button class="nav-tabs__item" data-view="shop" type="button">
+        <svg aria-hidden="true"><use href="#icon-nav-shop"></use></svg>
+        Tienda
+      </button>
+      <button class="nav-tabs__item" data-view="achievements" type="button">
+        <svg aria-hidden="true"><use href="#icon-trophy"></use></svg>
+        Logros
+      </button>
+    </nav>
+  </div>
+
+  <div class="modal-overlay" id="modal-overlay">
+    <div class="modal" id="modal" role="dialog" aria-modal="true" aria-labelledby="modal-title"></div>
+  </div>
+
+  <div class="toast-stack" id="toast-stack" aria-live="polite" aria-atomic="false"></div>
+
+  <noscript>Esta aplicación necesita JavaScript para funcionar.</noscript>
+  <script src="{{ url_for('static', filename='js/app.js') }}" defer></script>
+</body>
+</html>
