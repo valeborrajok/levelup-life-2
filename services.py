@@ -7,6 +7,8 @@ al completar o fallar un nodo, qué implica "recursar" una rama, y cómo
 validar una compra en la tienda.
 """
 import re
+import random
+from models import Branch, Node, PlayerProfile, PurchaseLog, Quest, RewardItem
 from datetime import datetime, timedelta
 from typing import Optional
 
@@ -68,12 +70,29 @@ def refresh_quest_state(quest) -> None:
         if last_sunday < now_sunday:
             quest.is_completed = False
 
+    elif quest.category == "mensual": #agregado en la 1.1
+        if (last.year, last.month) < (now.year, now.month):
+            quest.is_completed = False
+
+        # "campana" y "meta" son de una sola vez. "evento" se resetea en roll_daily_events().
+
     # "campana", "meta" y "evento" son de una sola vez: nunca se resetean.
 
 
 def refresh_all_quests(quests) -> None:
     for quest in quests:
         refresh_quest_state(quest)
+
+def roll_daily_events() -> None:
+    """Tira el dado de cada evento una vez por día. Idempotente."""
+    today = local_now().date()
+    for quest in Quest.query.filter_by(category="evento", is_active=True).all():
+        if quest.last_event_roll_date == today:
+            continue
+        chance = quest.appearance_probability if quest.appearance_probability is not None else 100
+        quest.is_active_today = random.random() * 100 < chance
+        quest.is_completed = False  # ← reset: día nuevo, evento nuevo
+        quest.last_event_roll_date = today
 
 
 # --------------------------------------------------------------------- #
@@ -282,7 +301,37 @@ def reset_branch(branch: Branch) -> None:
 
     branch.times_reset += 1
 
+def _resync_locks(branch: Branch) -> None:
+    """El orden ES el orden de desbloqueo: recalcula locked/available de los
+    nodos raíz según su nuevo lugar. Nunca toca completed/failed."""
+    prev_resolved = True
+    roots = sorted((n for n in branch.nodes if _is_root_node(n)), key=lambda n: n.position)
+    for node in roots:
+        if node.status in ("locked", "available"):
+            node.status = "available" if prev_resolved else "locked"
+        prev_resolved = node.status in ("completed", "failed")
 
+
+def reorder_nodes(branch: Branch, ordered_ids: list) -> None:
+    """Reordena los nodos movibles (raíces y bonus). Los recuperatorios/llamados
+    viajan pegados detrás de su raíz. Renumera 'position' de 10 en 10."""
+    movable = {n.id: n for n in branch.nodes if n.recovers_node_id is None}
+    if len(ordered_ids) != len(set(ordered_ids)) or set(ordered_ids) != set(movable):
+        raise GameError("La lista de nodos no coincide con los de la rama.")
+
+    followers: dict = {}
+    for n in sorted(branch.nodes, key=lambda n: n.position):
+        if n.recovers_node_id is not None:
+            followers.setdefault(n.recovers_node_id, []).append(n)
+
+    position = 0
+    for node_id in ordered_ids:
+        for node in [movable[node_id], *followers.get(node_id, [])]:
+            position += 10
+            node.position = position
+
+    _resync_locks(branch)
+    
 # --------------------------------------------------------------------- #
 # Tienda: compra con validación de doble moneda (oro + dinero real)
 # --------------------------------------------------------------------- #

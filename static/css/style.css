@@ -511,7 +511,7 @@ svg {
   display: flex;
   gap: var(--space-2);
   overflow-x: auto;
-  padding-bottom: var(--space-2);
+  padding: 10px 6px var(--space-2);
   margin-bottom: var(--space-4);
   scrollbar-width: none;
 }
@@ -1544,3 +1544,52 @@ svg {
     gap: var(--space-3);
   }
 }
+
+/* --- Resaltado de categorías "del día" --- */
+@keyframes chip-glow {
+  0%, 100% { box-shadow: 0 0 0 0 rgba(232, 179, 77, 0); }
+  50%      { box-shadow: 0 0 10px 1px rgba(232, 179, 77, 0.5); }
+}
+.filter-chip--glow {
+  border-color: var(--accent-gold);
+  animation: chip-glow 2.4s ease-in-out infinite;
+}
+@media (prefers-reduced-motion: reduce) {
+  .filter-chip--glow { animation: none; box-shadow: 0 0 8px 1px rgba(232, 179, 77, 0.4); }
+}
+
+/* --- Gestionar / eventos --- */
+.section-header__actions { display: flex; align-items: center; gap: var(--space-2); }
+#btn-manage-quests[aria-pressed="true"] { background: var(--accent-arcane-dim); border-color: var(--accent-arcane); }
+.quest-card--dormant { opacity: 0.55; }
+.tag--live { color: var(--accent-jade); border-color: var(--accent-jade); }
+
+
+/* --- Barra de progreso del árbol --- */
+.tree-progress { margin-bottom: var(--space-4); }
+.tree-progress__labels {
+  display: flex;
+  justify-content: space-between;
+  margin-bottom: var(--space-2);
+  font-size: var(--text-sm);
+  font-weight: 600;
+  color: var(--text-secondary);
+}
+.tree-progress .branch__bar { height: 10px; margin-bottom: 0; }
+
+/* --- Drag & drop de nodos --- */
+.node-stop { position: relative; -webkit-user-select: none; user-select: none; }
+.node-stop.is-dragging { opacity: 0.35; }
+.node-stop--before::before,
+.node-stop--after::after {
+  content: "";
+  position: absolute;
+  top: 2px;
+  bottom: 2px;
+  width: 3px;
+  border-radius: 2px;
+  background: var(--accent-arcane);
+  box-shadow: 0 0 8px var(--accent-arcane);
+}
+.node-stop--before::before { left: -2px; }
+.node-stop--after::after { right: -2px; }

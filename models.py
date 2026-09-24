@@ -107,7 +107,7 @@ class Quest(db.Model):
 
     __tablename__ = "quests"
 
-    CATEGORIES = ("diaria", "semanal", "campana", "meta", "evento")
+    CATEGORIES = ("diaria", "semanal", "mensual", "campana", "meta", "evento")
 
     id = db.Column(db.Integer, primary_key=True)
     title = db.Column(db.String(200), nullable=False)
@@ -120,6 +120,9 @@ class Quest(db.Model):
     is_active = db.Column(db.Boolean, nullable=False, default=True)  # soft delete
     icon = db.Column(db.String(16), nullable=True)
     color = db.Column(db.String(7), nullable=True)  # "#rrggbb"
+    appearance_probability = db.Column(db.Float, nullable=False, default=100)
+    is_active_today = db.Column(db.Boolean, nullable=False, default=False)
+    last_event_roll_date = db.Column(db.Date, nullable=True)
     created_at = db.Column(db.DateTime, default=datetime.utcnow)
 
     def to_dict(self) -> dict:
@@ -136,6 +139,8 @@ class Quest(db.Model):
             "due_date": self.due_date.isoformat() if self.due_date else None,
             "icon": self.icon,
             "color": self.color,
+            "appearance_probability": self.appearance_probability,
+            "is_active_today": self.is_active_today,
         }
 
 
@@ -172,15 +177,23 @@ class SkillTree(db.Model):
     name = db.Column(db.String(150), nullable=False)
     position = db.Column(db.Float, nullable=False, default=0)
 
-    branches = db.relationship(
+    branches = db.relationship(    
         "Branch",
         backref="tree",
         cascade="all, delete-orphan",
         order_by="Branch.position",
     )
 
+    @property
+    def progress_percent(self) -> float:
+        """Promedio del progress_percent de sus ramas (0 si no tiene ramas)."""
+        if not self.branches:
+            return 0.0
+        return round(sum(b.progress_percent for b in self.branches) / len(self.branches), 1)
+
     def to_dict(self, include_branches: bool = True) -> dict:
-        data = {"id": self.id, "folder_id": self.folder_id, "name": self.name}
+        data = {"id": self.id, "folder_id": self.folder_id, "name": self.name,
+                "progress_percent": self.progress_percent}
         if include_branches:
             data["branches"] = [b.to_dict() for b in self.branches]
         return data
@@ -282,6 +295,7 @@ class Node(db.Model):
             "status": self.status,
             "position": self.position,
             "attempt_number": self.attempt_number,
+            "recovers_node_id": self.recovers_node_id,
             "max_attempts": self.max_attempts,
             "xp_reward": self.xp_reward,
             "gold_reward": self.gold_reward,

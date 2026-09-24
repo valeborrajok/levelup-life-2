@@ -18,6 +18,7 @@ const state = {
   profile: null,
   quests: [],
   questFilter: "",
+  questManage: false,
   folders: [],
   trees: [],
   currentTreeId: null,
@@ -72,6 +73,7 @@ function isImageUrl(value) {
 const CATEGORY_LABELS = {
   diaria: "Diaria",
   semanal: "Semanal",
+  mensual: "Mensual",
   campana: "Campaña",
   meta: "Meta",
   evento: "Evento",
@@ -108,7 +110,13 @@ const Api = {
   getProfile: () => api("/profile"),
   updateProfile: (payload) => api("/profile", { method: "PUT", body: JSON.stringify(payload) }),
 
-  listQuests: (category) => api(category ? `/quests?category=${encodeURIComponent(category)}` : "/quests"),
+  listQuests: (category, manage = false) => {
+    const params = new URLSearchParams();
+    if (category) params.set("category", category);
+    if (manage) params.set("manage", "1");
+    const qs = params.toString();
+    return api(qs ? `/quests?${qs}` : "/quests");
+  },
   createQuest: (payload) => api("/quests", { method: "POST", body: JSON.stringify(payload) }),
   updateQuest: (id, payload) => api(`/quests/${id}`, { method: "PUT", body: JSON.stringify(payload) }),
   deleteQuest: (id) => api(`/quests/${id}`, { method: "DELETE" }),
@@ -129,6 +137,9 @@ const Api = {
   deleteBranch: (id) => api(`/branches/${id}`, { method: "DELETE" }),
   resetBranch: (id) => api(`/branches/${id}/reset`, { method: "POST" }),
 
+  reorderNodes: (branchId, nodeIds) =>
+  api(`/branches/${branchId}/reorder-nodes`, { method: "PUT", body: JSON.stringify({ node_ids: nodeIds }) }),
+  
   createNode: (branchId, payload) => api(`/branches/${branchId}/nodes`, { method: "POST", body: JSON.stringify(payload) }),
   updateNode: (id, payload) => api(`/nodes/${id}`, { method: "PUT", body: JSON.stringify(payload) }),
   deleteNode: (id) => api(`/nodes/${id}`, { method: "DELETE" }),
@@ -512,16 +523,21 @@ function openLevelFormModal(config = null) {
    ====================================================================== */
 function questCardHTML(q) {
   const done = q.is_completed;
+  const dormant = q.category === "evento" && !q.is_active_today;
+  const eventHTML = q.category === "evento" && state.questManage
+    ? `<span class="tag">🎲 ${q.appearance_probability}%</span>
+       <span class="tag ${dormant ? "" : "tag--live"}">${dormant ? "Inactivo hoy" : "Activo hoy"}</span>`
+    : "";
   const dueHTML = q.due_date ? `<span class="tag">Vence: ${formatDate(q.due_date)}</span>` : "";
   const styleAttr = q.color ? ` style="border-left-color:${escapeHTML(q.color)}"` : "";
   const iconBadgeHTML = q.icon ? `<span class="quest-card__icon-badge">${escapeHTML(q.icon)}</span>` : "";
   return `
-    <article class="quest-card ${done ? "quest-card--done" : ""}" data-id="${q.id}"${styleAttr}>
+    <article class="quest-card ${done ? "quest-card--done" : ""} ${dormant ? "quest-card--dormant" : ""}" data-id="${q.id}"${styleAttr}>
       <button
         class="quest-check"
         data-action="complete-quest"
         data-id="${q.id}"
-        ${done ? "disabled" : ""}
+        ${done || dormant ? "disabled" : ""}
         type="button"
         aria-label="${done ? "Misión completada" : "Marcar como completada"}"
       >
@@ -533,6 +549,7 @@ function questCardHTML(q) {
         <div class="quest-card__meta">
           <span class="tag">${CATEGORY_LABELS[q.category] || q.category}</span>
           ${dueHTML}
+          ${eventHTML}
           <span class="reward-pill reward-pill--xp">+${q.xp_reward} XP</span>
           <span class="reward-pill reward-pill--gold">
             <svg aria-hidden="true"><use href="#icon-coin"></use></svg>+${q.gold_reward}
@@ -554,7 +571,10 @@ function questCardHTML(q) {
 function renderQuestList() {
   const listEl = $("#quest-list");
   if (state.quests.length === 0) {
-    listEl.innerHTML = emptyStateHTML("No hay misiones en esta categoría.", "Creá una con el botón +.");
+        const msg = state.questFilter === "evento" && !state.questManage
+      ? "Hoy no apareció ningún evento."
+      : "No hay misiones en esta categoría.";
+    listEl.innerHTML = emptyStateHTML(msg, "Creá una con el botón +.");
     return;
   }
   listEl.innerHTML = state.quests.map(questCardHTML).join("");
@@ -564,7 +584,7 @@ async function loadQuests() {
   const listEl = $("#quest-list");
   listEl.innerHTML = `<div class="loading-spinner" role="status" aria-label="Cargando misiones"></div>`;
   try {
-    state.quests = await Api.listQuests(state.questFilter);
+    state.quests = await Api.listQuests(state.questFilter, state.questManage);
     renderQuestList();
   } catch (err) {
     listEl.innerHTML = emptyStateHTML("No se pudieron cargar las misiones.", err.message);
@@ -585,6 +605,10 @@ function openQuestModal(quest = null) {
           .map(([value, label]) => `<option value="${value}" ${quest && quest.category === value ? "selected" : ""}>${label}</option>`)
           .join("")}
       </select>
+    </div>
+    <div class="form-field" id="f-prob-field" style="display:${quest && quest.category === "evento" ? "" : "none"}">
+      <label for="f-prob">Probabilidad de aparecer cada día (%) — solo Eventos</label>
+      <input id="f-prob" type="number" min="0" max="100" step="1" value="${quest && quest.appearance_probability != null ? quest.appearance_probability : 25}" />
     </div>
     <div class="form-row">
       <div class="form-field">
@@ -623,6 +647,9 @@ function openQuestModal(quest = null) {
   });
 
   $("#quest-cancel").addEventListener("click", closeModal);
+  $("#f-category").addEventListener("change", (e) => {
+    $("#f-prob-field").style.display = e.target.value === "evento" ? "" : "none";
+  });
   $("#quest-save").addEventListener("click", async () => {
     const title = $("#f-title").value.trim();
     if (!title) {
@@ -632,6 +659,7 @@ function openQuestModal(quest = null) {
     const payload = {
       title,
       category: $("#f-category").value,
+      appearance_probability: Number($("#f-prob").value || 0),
       xp_reward: Number($("#f-xp").value || 0),
       gold_reward: Number($("#f-gold").value || 0),
       due_date: $("#f-due").value || null,
@@ -670,8 +698,18 @@ $("#quest-filters").addEventListener("click", (e) => {
     c.setAttribute("aria-selected", "false");
   });
   chip.classList.add("is-active");
+  chip.classList.remove("filter-chip--glow");
   chip.setAttribute("aria-selected", "true");
   state.questFilter = chip.dataset.category;
+  const btnManage = $("#btn-manage-quests");
+  if (state.questFilter === "evento") {
+    btnManage.style.display = ""; // Muestra el botón
+  } else {
+    btnManage.style.display = "none"; // Oculta el botón
+    state.questManage = false; // Apaga el modo gestionar si te vas a otra pestaña
+    btnManage.setAttribute("aria-pressed", "false");
+  }
+  chip.classList.remove("filter-chip--glow");
   loadQuests();
 });
 
@@ -698,6 +736,24 @@ $("#quest-list").addEventListener("click", (e) => {
 });
 
 $("#btn-new-quest").addEventListener("click", () => openQuestModal());
+
+$("#btn-manage-quests").addEventListener("click", (e) => {
+  state.questManage = !state.questManage;
+  e.currentTarget.setAttribute("aria-pressed", String(state.questManage));
+  loadQuests();
+});
+
+/* Resaltado por fecha: Diarias siempre, Semanales un día fijo, Mensuales el día 1 */
+const WEEKLY_HIGHLIGHT_DAY = 1; // 0 = domingo, 1 = lunes...
+function highlightDueCategories() {
+  const now = new Date();
+  const due = ["diaria"];
+  if (now.getDay() === WEEKLY_HIGHLIGHT_DAY) due.push("semanal");
+  if (now.getDate() === 1) due.push("mensual");
+  due.forEach((cat) =>
+    $(`.filter-chip[data-category="${cat}"]`)?.classList.add("filter-chip--glow")
+  );
+}
 
 /* ======================================================================
    Categorías (Folders) que agrupan árboles de habilidades
@@ -829,7 +885,7 @@ function nodeHTML(node) {
       ? `<span class="node__attempt">Llamado ${node.attempt_number}</span>`
       : `<span class="node__reward">+${node.xp_reward} XP</span>`;
   return `
-    <div class="node-stop">
+    <div class="node-stop" data-node-id="${node.id}"${node.recovers_node_id ? "" : ' draggable="true"'}>
       <button
         type="button"
         class="node node--${node.status} node--${node.node_type} node--clickable"
@@ -912,7 +968,17 @@ function renderTreeSelect() {
     .join("");
 }
 
+function renderTreeProgress() {
+  const tree = currentTree();
+  $("#tree-progress").hidden = !tree;
+  if (!tree) return;
+  const pct = tree.progress_percent ?? 0;
+  $("#tree-progress-label").textContent = `${pct}%`;
+  $("#tree-progress-fill").style.width = `${pct}%`;
+}
+
 function renderBranches() {
+  renderTreeProgress();
   const container = $("#branch-list");
   const tree = currentTree();
   if (!tree) return;
@@ -920,7 +986,11 @@ function renderBranches() {
     container.innerHTML = emptyStateHTML("Este árbol todavía no tiene ramas.", "Agregá una con el botón + Rama.");
     return;
   }
-  container.innerHTML = tree.branches.map(branchHTML).join("");
+    // Las ramas al 100% se hunden al final (sort estable: el resto conserva su orden).
+  const ordered = [...tree.branches].sort(
+    (a, b) => (a.progress_percent >= 100) - (b.progress_percent >= 100)
+  );
+  container.innerHTML = ordered.map(branchHTML).join("");
 }
 
 async function loadTrees() {
@@ -932,6 +1002,7 @@ async function loadTrees() {
 
     if (state.trees.length === 0) {
       state.currentTreeId = null;
+      renderTreeProgress();
       container.innerHTML = emptyStateHTML("Todavía no creaste ningún árbol.", "Creá uno con el botón +.");
       return;
     }
@@ -1268,6 +1339,86 @@ $("#branch-list").addEventListener("click", (e) => {
     });
   }
 });
+
+/* Drag & drop nativo: reordenar nodos dentro de una rama (delegado en #branch-list,
+   así sobrevive a los re-renders con innerHTML). */
+function initNodeDragAndDrop() {
+  const list = $("#branch-list");
+  const STOP = '.node-stop[draggable="true"]';
+  let dragId = null;
+  let dragBranch = null;
+
+  const stopOf = (e) => e.target.closest?.(STOP) ?? null;
+  const isAfter = (stop, e) => {
+    const r = stop.getBoundingClientRect();
+    return e.clientX > r.left + r.width / 2;
+  };
+  const clearMarks = () =>
+    $$(".node-stop--before, .node-stop--after", list).forEach((el) =>
+      el.classList.remove("node-stop--before", "node-stop--after")
+    );
+
+  list.addEventListener("dragstart", (e) => {
+    const stop = stopOf(e);
+    if (!stop) return;
+    dragId = Number(stop.dataset.nodeId);
+    dragBranch = stop.closest(".branch").dataset.branchId;
+    e.dataTransfer.effectAllowed = "move";
+    e.dataTransfer.setData("text/plain", String(dragId)); // Firefox lo exige
+    setTimeout(() => stop.classList.add("is-dragging"), 0); // después de capturar la imagen del drag
+  });
+
+  list.addEventListener("dragover", (e) => {
+    const stop = stopOf(e);
+    const valid =
+      dragId !== null &&
+      stop &&
+      stop.closest(".branch").dataset.branchId === dragBranch && // solo dentro de la misma rama
+      Number(stop.dataset.nodeId) !== dragId;
+    if (!valid) return clearMarks();
+    e.preventDefault(); // habilita el drop
+    e.dataTransfer.dropEffect = "move";
+    const cls = isAfter(stop, e) ? "node-stop--after" : "node-stop--before";
+    if (!stop.classList.contains(cls)) {
+      clearMarks();
+      stop.classList.add(cls);
+    }
+  });
+
+  list.addEventListener("drop", async (e) => {
+    const stop = stopOf(e);
+    if (dragId === null || !stop || Number(stop.dataset.nodeId) === dragId) return;
+    e.preventDefault();
+
+    // Capturar todo ANTES del await: dragend limpia dragId/dragBranch enseguida.
+    const branchEl = stop.closest(".branch");
+    const branchId = Number(branchEl.dataset.branchId);
+    const movedId = dragId;
+    const current = $$(STOP, branchEl).map((el) => Number(el.dataset.nodeId));
+    const next = current.filter((id) => id !== movedId);
+    next.splice(next.indexOf(Number(stop.dataset.nodeId)) + (isAfter(stop, e) ? 1 : 0), 0, movedId);
+    if (next.join() === current.join()) return; // no cambió nada
+
+    await runWithToastOnError(async () => {
+      const updated = await Api.reorderNodes(branchId, next);
+      const tree = currentTree();
+      tree.branches = tree.branches.map((b) => (b.id === updated.id ? updated : b));
+
+      // Re-render solo de esta rama (sin spinner) conservando el scroll horizontal de la cadena.
+      const left = $(".node-chain", branchEl)?.scrollLeft ?? 0;
+      branchEl.outerHTML = branchHTML(updated);
+      const fresh = $(`.branch[data-branch-id="${updated.id}"] .node-chain`);
+      if (fresh) fresh.scrollLeft = left;
+    });
+  });
+
+  list.addEventListener("dragend", () => {
+    $$(".is-dragging", list).forEach((el) => el.classList.remove("is-dragging"));
+    clearMarks();
+    dragId = dragBranch = null;
+  });
+}
+initNodeDragAndDrop();
 
 /* ======================================================================
    Tienda de recompensas
@@ -1629,6 +1780,8 @@ function registerServiceWorker() {
    Arranque
    ====================================================================== */
 async function init() {
+  $("#btn-manage-quests").style.display = "none";
+  highlightDueCategories();
   await loadProfile();
   await loadFolders();
   await Promise.all([loadQuests(), loadTrees(), loadShop(), loadAchievements(), loadLevelConfigs()]);

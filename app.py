@@ -15,6 +15,7 @@ Para producción (Railway usa esto vía Procfile):
 import os
 import re
 from datetime import date
+from sqlalchemy import or_
 
 from flask import jsonify, render_template, request, send_from_directory
 
@@ -63,6 +64,12 @@ def parse_float(data: dict, field: str, default=None):
         return float(data[field])
     except (TypeError, ValueError):
         raise services.GameError(f"'{field}' debe ser un número.")
+
+def parse_probability(data: dict, default: float = 100.0) -> float:
+    value = parse_float(data, "appearance_probability", default)
+    if not 0 <= value <= 100:
+        raise services.GameError("'appearance_probability' debe estar entre 0 y 100.")
+    return value
 
 
 def parse_date(value):
@@ -220,11 +227,17 @@ def update_profile():
 @app.get("/api/quests")
 def list_quests():
     category = request.args.get("category")
+    manage = request.args.get("manage") == "1"
+
+    services.roll_daily_events()  # no-op si ya se tiró hoy
+
     query = Quest.query.filter_by(is_active=True)
     if category:
         if category not in Quest.CATEGORIES:
             return json_error(f"Categoría inválida: '{category}'.")
         query = query.filter_by(category=category)
+    if not manage:  # vista normal: los eventos inactivos hoy no se ven
+        query = query.filter(or_(Quest.category != "evento", Quest.is_active_today.is_(True)))
 
     quests = query.order_by(Quest.created_at.asc()).all()
     services.refresh_all_quests(quests)
@@ -246,6 +259,7 @@ def create_quest():
         due_date=parse_date(data.get("due_date")),
         icon=icon,
         color=color,
+        appearance_probability=parse_probability(data),
     )
     db.session.add(quest)
     db.session.commit()
@@ -276,6 +290,9 @@ def update_quest(quest_id):
     if "due_date" in data:
         quest.due_date = parse_date(data["due_date"])
 
+    if "appearance_probability" in data:
+        quest.appearance_probability = parse_probability(data)
+
     icon, provided = parse_icon(data, "icon")
     if provided:
         quest.icon = icon
@@ -299,6 +316,9 @@ def delete_quest(quest_id):
 def complete_quest(quest_id):
     quest = Quest.query.get_or_404(quest_id)
     services.refresh_quest_state(quest)
+
+    if quest.category == "evento" and not quest.is_active_today:
+        raise services.GameError("Este evento no está activo hoy.", 409)
 
     if quest.is_completed:
         raise services.GameError("Esta misión ya fue completada.", 409)
@@ -455,6 +475,17 @@ def reset_branch_route(branch_id):
     """'Recursar': ver services.reset_branch para el detalle de la regla."""
     branch = Branch.query.get_or_404(branch_id)
     services.reset_branch(branch)
+    db.session.commit()
+    return jsonify(branch.to_dict())
+
+@app.put("/api/branches/<int:branch_id>/reorder-nodes")
+def reorder_nodes_route(branch_id):
+    """Body: {"node_ids": [3, 1, 2]} — nuevo orden de los nodos movibles."""
+    branch = Branch.query.get_or_404(branch_id)
+    ids = get_json_body().get("node_ids")
+    if not isinstance(ids, list):
+        raise services.GameError("'node_ids' debe ser una lista de IDs.")
+    services.reorder_nodes(branch, ids)
     db.session.commit()
     return jsonify(branch.to_dict())
 

@@ -140,15 +140,19 @@
             <h2 id="quests-heading">Misiones</h2>
             <p>Completá tareas para ganar XP y Gold Coins.</p>
           </div>
-          <button class="fab-add" id="btn-new-quest" aria-label="Nueva misión">
-            <svg aria-hidden="true"><use href="#icon-plus"></use></svg>
-          </button>
+          <div class="section-header__actions">
+            <button class="btn btn--ghost btn--small" id="btn-manage-quests" type="button" aria-pressed="false">Gestionar</button>
+            <button class="fab-add" id="btn-new-quest" aria-label="Nueva misión">
+              <svg aria-hidden="true"><use href="#icon-plus"></use></svg>
+            </button>
+        </div>
         </div>
 
         <div class="filter-chips" id="quest-filters" role="tablist" aria-label="Filtrar por categoría">
           <button class="filter-chip is-active" data-category="" role="tab" aria-selected="true">Todas</button>
           <button class="filter-chip" data-category="diaria" role="tab" aria-selected="false">Diarias</button>
           <button class="filter-chip" data-category="semanal" role="tab" aria-selected="false">Semanales</button>
+          <button class="filter-chip" data-category="mensual" role="tab" aria-selected="false">Mensuales</button>
           <button class="filter-chip" data-category="campana" role="tab" aria-selected="false">Campaña</button>
           <button class="filter-chip" data-category="meta" role="tab" aria-selected="false">Metas</button>
           <button class="filter-chip" data-category="evento" role="tab" aria-selected="false">Eventos</button>
@@ -178,6 +182,15 @@
           </button>
         </div>
 
+        <div class="tree-progress" id="tree-progress" hidden>
+          <div class="tree-progress__labels">
+            <span>Progreso del árbol</span>
+            <span class="num" id="tree-progress-label">0%</span>
+          </div>
+          <div class="branch__bar"><div class="branch__bar-fill" id="tree-progress-fill" style="width:0%"></div></div>
+        </div>
+
+        
         <div class="section-header">
           <div class="section-header__text"><p>Ramas</p></div>
           <button class="btn btn--ghost btn--small" id="btn-new-branch" type="button">

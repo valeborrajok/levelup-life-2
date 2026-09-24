@@ -8,7 +8,7 @@
  * Se sirve desde la raíz (/sw.js, ver la ruta dedicada en app.py) para que
  * su alcance ("scope") cubra toda la app y no solo /static/.
  */
-const CACHE_NAME = "levelup-life-shell-v3";
+const CACHE_NAME = "levelup-life-shell-v5";
 const SHELL_URLS = [
   "/",
   "/static/css/style.css",
