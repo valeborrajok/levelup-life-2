@@ -8,6 +8,22 @@
 
   <!-- PWA / "Agregar a inicio" -->
   <meta name="theme-color" content="#0d0f1a" />
+    <!-- Tema: se aplica ANTES del primer render para evitar el flash (FOUC) -->
+  <script>
+    (function () {
+      try {
+        var saved = localStorage.getItem("levelup-theme"); // "light" | "dark" | null
+        var light = saved
+          ? saved === "light"
+          : window.matchMedia("(prefers-color-scheme: light)").matches;
+        if (light) {
+          document.documentElement.classList.add("light-theme");
+          var m = document.querySelector('meta[name="theme-color"]');
+          if (m) m.setAttribute("content", "#f1f2fb");
+        }
+      } catch (e) {}
+    })();
+  </script>
   <meta name="mobile-web-app-capable" content="yes" />
   <meta name="apple-mobile-web-app-capable" content="yes" />
   <meta name="apple-mobile-web-app-status-bar-style" content="black-translucent" />
@@ -88,6 +104,13 @@
       <path d="M7 5H4v2a3 3 0 0 0 3 3M17 5h3v2a3 3 0 0 1-3 3" fill="none" stroke="currentColor" stroke-width="1.6" stroke-linecap="round"/>
       <path d="M12 13v3M10 19.5h4M10.5 16h3a1 1 0 0 1 1 1v1a1 1 0 0 1-1 1h-3a1 1 0 0 1-1-1v-1a1 1 0 0 1 1-1z" fill="none" stroke="currentColor" stroke-width="1.6" stroke-linejoin="round"/>
     </symbol>
+    <symbol id="icon-sun" viewBox="0 0 24 24">
+      <circle cx="12" cy="12" r="4" fill="none" stroke="currentColor" stroke-width="1.8"/>
+      <path d="M12 2v2M12 20v2M2 12h2M20 12h2M4.9 4.9l1.4 1.4M17.7 17.7l1.4 1.4M4.9 19.1l1.4-1.4M17.7 6.3l1.4-1.4" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round"/>
+    </symbol>
+    <symbol id="icon-moon" viewBox="0 0 24 24">
+      <path d="M21 12.79A9 9 0 1 1 11.21 3 7 7 0 0 0 21 12.79z" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linejoin="round"/>
+    </symbol>
   </svg>
 
   <div class="app-shell">
@@ -97,6 +120,10 @@
           <svg class="brand__mark" aria-hidden="true"><use href="#icon-brand"></use></svg>
           <span class="brand__name">LevelUp Life</span>
         </div>
+        <button class="icon-btn theme-toggle" id="btn-theme" type="button" aria-label="Cambiar a modo claro" aria-pressed="false">
+          <svg class="theme-toggle__sun" aria-hidden="true"><use href="#icon-sun"></use></svg>
+          <svg class="theme-toggle__moon" aria-hidden="true"><use href="#icon-moon"></use></svg>
+        </button>
         <button class="profile-chip" id="btn-edit-profile" type="button" aria-label="Editar perfil">
           <span class="profile-chip__avatar" id="profile-avatar">🙂</span>
           <span class="profile-chip__name" id="profile-name">Sin nombre</span>

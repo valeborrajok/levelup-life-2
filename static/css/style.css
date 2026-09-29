@@ -1593,3 +1593,71 @@ svg {
 }
 .node-stop--before::before { left: -2px; }
 .node-stop--after::after { right: -2px; }
+
+/* ======================================================================
+   Modo claro — se activa con la clase .light-theme en <html>
+   ====================================================================== */
+:root.light-theme {
+  color-scheme: light;
+
+  /* Superficies */
+  --bg-void: #f1f2fb;
+  --bg-panel: #ffffff;
+  --bg-panel-raised: #f6f7fe;
+  --bg-sunken: #e6e8f5;
+
+  /* Bordes */
+  --border-arcane: #dcdff0;
+  --border-arcane-strong: #c3c8e6;
+
+  /* Acentos: mismos tonos, un escalón más profundos para leerse como texto sobre blanco */
+  --accent-arcane: #6d5bef;
+  --accent-arcane-dim: #e9e6ff;
+  --accent-gold: #a06200;
+  --accent-gold-dim: #f7ecd2;
+  --accent-jade: #0a7d5e;
+  --accent-jade-dim: #d5f2e8;
+  --accent-ember: #d23a52;
+  --accent-ember-dim: #fdecef;
+  --accent-silver: #646a93;
+
+  /* Texto */
+  --text-primary: #171a3a;
+  --text-secondary: #454a75;
+  --text-muted: #646a93;
+  --text-on-accent: #ffffff;
+}
+
+/* Colores que estaban fijos (fuera de las variables) */
+:root.light-theme .topbar { background: rgba(241, 242, 251, 0.86); }
+:root.light-theme .nav-tabs { background: rgba(255, 255, 255, 0.92); }
+:root.light-theme .modal-overlay { background: rgba(23, 26, 58, 0.4); }
+:root.light-theme .toast { box-shadow: 0 12px 28px rgba(23, 26, 58, 0.18); }
+:root.light-theme .btn--primary:hover:not(:disabled) { background: #5a48d8; }
+:root.light-theme .btn--gold:hover:not(:disabled) { background: #8a5400; }
+
+/* --- Botón de tema (sol/luna) --- */
+.theme-toggle {
+  margin-left: auto; /* lo pega a la derecha, junto al chip de perfil */
+  width: 36px;
+  height: 36px;
+  border: 1px solid var(--border-arcane);
+  border-radius: var(--radius-pill);
+  background: var(--bg-panel);
+}
+.theme-toggle svg { width: 18px; height: 18px; }
+.theme-toggle__moon { display: none; }
+:root.light-theme .theme-toggle__sun { display: none; }
+:root.light-theme .theme-toggle__moon { display: block; }
+
+
+:root.light-theme body::before {
+  content: "";
+  position: fixed;
+  top: 0;
+  left: 0;
+  right: 0;
+  height: env(safe-area-inset-top, 0px);
+  background: #0d0f1a;
+  z-index: var(--z-toast);
+}

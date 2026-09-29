@@ -1777,6 +1777,31 @@ function registerServiceWorker() {
 }
 
 /* ======================================================================
+   Tema claro/oscuro — la clase inicial la pone el <script> del <head> (sin FOUC);
+   acá solo se maneja el botón y se persiste la elección.
+   ====================================================================== */
+const THEME_KEY = "levelup-theme";
+const THEME_COLORS = { dark: "#0d0f1a", light: "#f1f2fb" };
+
+function applyTheme(theme) {
+  const isLight = theme === "light";
+  document.documentElement.classList.toggle("light-theme", isLight);
+  document.querySelector('meta[name="theme-color"]')?.setAttribute("content", THEME_COLORS[theme]);
+  const btn = $("#btn-theme");
+  btn.setAttribute("aria-pressed", String(isLight));
+  btn.setAttribute("aria-label", isLight ? "Cambiar a modo oscuro" : "Cambiar a modo claro");
+}
+
+$("#btn-theme").addEventListener("click", () => {
+  const next = document.documentElement.classList.contains("light-theme") ? "dark" : "light";
+  applyTheme(next);
+  try { localStorage.setItem(THEME_KEY, next); } catch (e) {}
+});
+
+// Sincroniza botón y <meta theme-color> con la clase que ya puso el script del <head>
+applyTheme(document.documentElement.classList.contains("light-theme") ? "light" : "dark");
+
+/* ======================================================================
    Arranque
    ====================================================================== */
 async function init() {
